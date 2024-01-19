@@ -157,8 +157,9 @@ def eval_genomes(genomes, config):
             elif (paddle1.x + PADDLE_WIDTH) <= SCREEN_WIDTH:
                 paddle1.move_ip(1, 0)
 
-            if distances[x] < prev_dinstances[x]:
-                ge[x].fitness += 0.1
+            """ if distances[x] < prev_dinstances[x]:
+                ge[x].fitness += 0.1 """
+            ge[x].fitness += 0.1
 
         # move paddle2 automatic for training ai
         paddle2_mid = paddle2.x + (PADDLE_WIDTH / 2) + rand
