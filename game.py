@@ -56,7 +56,6 @@ while run:
 
         # calc trajectory of pong
         if hit:
-            pong_x_vel = pong_x_vel * (-1)
             pong_y_vel = pong_y_vel * (-1)
 
     elif pong.y == 557:   
@@ -67,7 +66,8 @@ while run:
             # calc trajectory of pong
             mid = paddle2.x + (PADDLE_WIDTH / 2)
             diff = abs(mid - pong.x)
-            angle = num_to_range(diff, 0, PADDLE_WIDTH)
+            #angle = num_to_range(diff, 0, PADDLE_WIDTH)
+            angle = random.uniform(0, 0.8)
 
             if pong_x_vel > 0:
                 pong_x_vel = angle
