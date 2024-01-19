@@ -142,6 +142,8 @@ def eval_genomes(genomes, config):
                 paddle1.move_ip(-1, 0)
             elif max_output == 1 and (paddle1.x + PADDLE_WIDTH) <= SCREEN_WIDTH:
                 paddle1.move_ip(1, 0)
+            elif max_output == 2:
+                pass
 
             ge[x].fitness += 0.1
 
@@ -179,13 +181,14 @@ def run(config_path):
     stats = neat.StatisticsReporter()
     pop.add_reporter(stats)
 
-    winner = pop.run(eval_genomes, 1)
+    winner_genome = pop.run(eval_genomes, 1)
+    neural_network = neat.nn.FeedForwardNetwork.create(winner_genome, config)
 
     answer = input("Do you want to save this neural network? (Y or N)")
 
     if answer.upper() == "Y" or answer.upper() == "YES":
         with open('neural_network.pkl', 'wb') as file:
-            pickle.dump(winner, file)
+            pickle.dump(neural_network, file)
 
             print("Neural network saved to neural_network.pkl")
 
