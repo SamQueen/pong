@@ -24,6 +24,8 @@ def eval_genomes(genomes, config):
     paddles = []
     nets = []
     ge = []
+    prev_dinstances = []
+    distances = []
 
     # track neural network and genome fitness
     for genome_id, genome in genomes:
@@ -33,10 +35,17 @@ def eval_genomes(genomes, config):
         genome.fitness = 0
         ge.append(genome)
 
+    # set previous distances
+    for genome in genomes:
+        prev_dinstances.append(5000)
+    
+    for genome in genomes:
+        distances.append(100)
+
     pong_x_pos = SCREEN_WIDTH / 2
     pong_y_pos = SCREEN_HEIGHT / 2
     pong_x_vel = 0
-    pong_y_vel = -0.5
+    pong_y_vel = -0.3 #0.5    
     pong_width = 20
     hits = 0
 
@@ -57,28 +66,17 @@ def eval_genomes(genomes, config):
         pygame.draw.rect(screen, (255, 0, 0), paddle2)
         pygame.draw.ellipse(screen, (255, 0, 0), pong)
 
-        # update pong speed depending on hits
-        if hits == 5:
-            if pong_y_vel < 0:
-                pong_y_vel = 0.8 * (-1)
-            else:
-                pong_y_vel = 0.8
-        if hits == 10:
-            if pong_y_vel < 0:
-                pong_y_vel = 1 * (-1)
-            else:
-                pong_y_vel = 1
-
         # pong collision detection
         if pong.y == PADDLE_HEIGHT + 10:
             hit = False
             
             for x, paddle1 in enumerate(paddles):
                 if (pong.x + pong_width) >= paddle1.x and pong.x <= paddle1.x + PADDLE_WIDTH:
-                    #hits += 1
                     hit = True
                     rand = random.randint(-PADDLE_WIDTH/2, PADDLE_WIDTH/2)
-                    
+                    print("hit " + str(x))
+                    print(pong_y_vel)
+                    print(pong_x_vel)
                     # add fitness
                     ge[x].fitness += 5
                 else:
@@ -87,19 +85,13 @@ def eval_genomes(genomes, config):
                     ge[x].fitness -= 1
                     paddles.pop(x)
                     nets.pop(x)
+                    distances.pop(x)
+                    prev_dinstances.pop(x)
                     ge.pop(x)
 
             # calc trajectory of pong
-            #mid = paddle1.x + (PADDLE_WIDTH / 2)
             if hit:
-                mid = paddles[0].x + (PADDLE_WIDTH / 2)
-                diff = abs(mid - pong.x)
-                angle = num_to_range(diff, 0, PADDLE_WIDTH)
-
-                if pong_x_vel > 0:
-                    pong_x_vel = angle
-                else:
-                    pong_x_vel = angle * (-1)
+                pong_x_vel = pong_x_vel * (-1)
                 pong_y_vel = pong_y_vel * (-1)
 
         elif pong.y == 557:   
@@ -126,8 +118,7 @@ def eval_genomes(genomes, config):
             pong_y_vel = 0.5
             hits = 0
 
-            running = False
-
+        # check if pong hits side of screen
         if pong.x <= 0:
             pong_x_vel = pong_x_vel * (-1)
         elif (pong.x + pong_width) >= SCREEN_WIDTH:
@@ -140,21 +131,34 @@ def eval_genomes(genomes, config):
         pong.x = pong_x_pos
 
         # get distance of pong from paddle
-        x_dis = abs(pong.x - paddle1.x)
-        y_dis = abs(pong.y - paddle1.y)
-        distance = math.sqrt(pow(x_dis, 2) + pow(y_dis, 2))
+        for x, paddle1 in enumerate(paddles):
+            x_dis = abs(pong.x - paddle1.x)
+            y_dis = abs(pong.y - paddle1.y)
+            distance = math.sqrt(pow(x_dis, 2) + pow(y_dis, 2))
+            distances[x] = distance
 
         # move ai paddle
         for x, paddle1 in enumerate(paddles):
-            ge[x].fitness += 0.1
 
-            output = nets[x].activate((pong.x, pong.y, distance))
+            output = nets[x].activate((pong.x, pong.y, distances[x]))
 
-            if output[0] > 0.5 and paddle1.x > 0:
+            # move paddle left
+            """ if output[0] > 0.5 and paddle1.x > 0:
                 paddle1.move_ip(-1, 0)
 
-            if output[0] < 0 and paddle1.x < (SCREEN_WIDTH - PADDLE_WIDTH):
+            #move paddle right
+            if output[1] > 0.5 and paddle1.x > 0:
+                paddle1.move_ip(1, 0) """
+            
+            max_output = output.index(max(output))
+
+            if max_output == 0 and paddle1.x >= 0:
+                paddle1.move_ip(-1, 0)
+            elif (paddle1.x + PADDLE_WIDTH) <= SCREEN_WIDTH:
                 paddle1.move_ip(1, 0)
+
+            if distances[x] < prev_dinstances[x]:
+                ge[x].fitness += 0.1
 
         # move paddle2 automatic for training ai
         paddle2_mid = paddle2.x + (PADDLE_WIDTH / 2) + rand
@@ -170,11 +174,19 @@ def eval_genomes(genomes, config):
             paddle1.move_ip(-1, 0)
         elif key[pygame.K_d] == True and paddle1.x < (SCREEN_WIDTH - PADDLE_WIDTH):
             paddle1.move_ip(1, 0) """
+        
+        # set previous distances
+        for x in range(len(distances)):
+            prev_dinstances[x] = distances[x]
 
+        # end game if user quits or generation is empty
         for event in pygame.event.get():
             if event.type == pygame.QUIT: 
                 run = False
 
+        if len(paddles) == 0:
+            run = False
+            
         # update display
         pygame.display.update()
 
